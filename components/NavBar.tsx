@@ -8,8 +8,13 @@ export default function NavBar(){
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
         <Link href="/" aria-label="Обменник +" className="flex items-center gap-3">
           <Logo size={36} />
-          <span className="sr-only">Обменник +</span>
+          <div className="flex items-baseline font-extrabold tracking-tight">
+            <span className="text-white text-lg leading-none">ОБМЕННИК</span>
+            <span className="text-[#F5C84B] text-lg leading-none ml-1">+</span>
+          </div>
         </Link>
+
+        {/* Desktop */}
         <div className="hidden md:flex items-center gap-6 text-sm">
           <Link href="/about" className="hover:opacity-80">О нас</Link>
           <a href="/#features" className="hover:opacity-80">Преимущества</a>
@@ -19,6 +24,8 @@ export default function NavBar(){
           <a href="https://t.me/mikhail_gubkin" target="_blank" className="btn">Написать в поддержку</a>
           <Link href="/dashboard" className="badge">Вход / Кабинет</Link>
         </div>
+
+        {/* Mobile */}
         <div className="md:hidden flex items-center gap-2">
           <a href="https://t.me/mikhail_gubkin" target="_blank" className="btn px-3 py-2 text-sm">Поддержка</a>
           <Link href="/dashboard" className="badge px-3 py-2 text-sm">Кабинет</Link>
