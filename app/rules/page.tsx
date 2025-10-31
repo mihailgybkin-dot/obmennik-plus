@@ -1,12 +1,9 @@
-import NavBar from "../../components/NavBar";
-
 export const metadata = { title: "Правила — Обменник +" };
 
 export default function Rules(){
   const today = new Date().toLocaleDateString("ru-RU");
   return (
     <main>
-      <NavBar/>
       <div className="mx-auto max-w-3xl px-4 pt-28 pb-16 space-y-6">
         <h1 className="text-4xl font-bold">Правила сайта</h1>
         <p className="opacity-85">
@@ -42,15 +39,15 @@ export default function Rules(){
           <section>
             <h2 className="text-xl font-semibold">4. Запрещённые операции</h2>
             <ul className="list-disc pl-5 opacity-85 space-y-2">
-              <li>Операции в нарушение законодательства РФ, финансирование противоправной деятельности и иные запреты.</li>
-              <li>Сервис оставляет за собой право отказать в обслуживании без объяснения причин при выявлении рисков.</li>
+              <li>Операции, нарушающие законодательство РФ, и иные запреты.</li>
+              <li>Сервис вправе отказать в обслуживании при выявлении рисков.</li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold">5. Персональные данные</h2>
             <ul className="list-disc pl-5 opacity-85 space-y-2">
-              <li>Данные используются строго для обработки заявок и не передаются третьим лицам, кроме случаев, предусмотренных законом.</li>
+              <li>Данные используются только для обработки заявок и не передаются третьим лицам, кроме случаев, предусмотренных законом.</li>
               <li>Срок и способ хранения информации определяются внутренними регламентами сервиса.</li>
             </ul>
           </section>
