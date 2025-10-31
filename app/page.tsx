@@ -1,25 +1,39 @@
-export const metadata = { title: "Правила — Обменник +" };
+import NavBar from "../components/NavBar";
+import Calculator from "../components/Calculator";
+import Features from "../components/Features";
+import FAQ from "../components/FAQ";
 
-export default function Rules(){
+export default function Page(){
   return (
-    <div className="mx-auto max-w-3xl px-4 pt-28 pb-16 space-y-6">
-      <h1 className="text-4xl font-bold">Правила сайта</h1>
-      <p className="opacity-85">Настоящие правила регулируют порядок создания заявок, обмена и взаимодействия с сервисом «Обменник +».</p>
+    <main>
+      <NavBar/>
+      <section className="mx-auto max-w-6xl px-4 pt-28 pb-12">
+        <div className="text-center mb-10">
+          <div className="logo">
+            <span className="brand">Обменник</span><span className="plus">+</span>
+          </div>
+          <div className="mt-3 text-xl opacity-90">— быстро. просто. в Краснодаре.</div>
+        </div>
 
-      <div className="card p-6 space-y-3">
-        <h2 className="text-xl font-semibold">1. Общие положения</h2>
-        <p className="opacity-85">Сервис предназначен для лиц старше 18 лет. Используя сайт, вы подтверждаете согласие с Правилами и AML.</p>
-        <h2 className="text-xl font-semibold">2. Заявки и курс</h2>
-        <p className="opacity-85">Курс фиксируется при создании заявки и действует ограниченное время. Обмены проводятся в г. Краснодар, в офисе сервиса.</p>
-        <h2 className="text-xl font-semibold">3. Лимиты и сроки</h2>
-        <p className="opacity-85">Лимиты и время обработки обсуждаются с оператором при подтверждении заявки.</p>
-        <h2 className="text-xl font-semibold">4. Ответственность</h2>
-        <p className="opacity-85">Сервис не несёт ответственности за задержки третьих сторон и технические сбои, не зависящие от нас.</p>
-        <h2 className="text-xl font-semibold">5. Персональные данные</h2>
-        <p className="opacity-85">Данные используются строго для обработки заявок и не передаются третьим лицам, за исключением случаев, предусмотренных законом.</p>
-      </div>
+        <Calculator/>
 
-      <p className="text-sm opacity-70">Актуально с: {new Date().toLocaleDateString("ru-RU")}</p>
-    </div>
+        <div className="mt-12" id="features">
+          <h2 className="mb-4">Преимущества</h2>
+          <Features/>
+        </div>
+
+        <div id="faq" className="mt-10 card p-6">
+          <h2 className="mb-3">FAQ</h2>
+          <FAQ/>
+        </div>
+
+        <footer className="mt-12 opacity-80 text-sm pb-10 space-y-1">
+          <div>© {new Date().getFullYear()} «Обменник +». Все права защищены.</div>
+          <div>Сайт не предоставляет возможности зачисления иностранной валюты на счета валютных резидентов РФ.</div>
+          <div>Сайт не проводит операции с ЦФА для физ. лиц на территории РФ.</div>
+          <div>Сайт предназначен только для лиц старше 18 лет.</div>
+        </footer>
+      </section>
+    </main>
   );
 }
