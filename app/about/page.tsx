@@ -1,11 +1,8 @@
-import NavBar from "../../components/NavBar";
-
 export const metadata = { title: "О нас — Обменник +" };
 
 export default function About(){
   return (
     <main>
-      <NavBar/>
       <div className="mx-auto max-w-4xl px-4 pt-28 pb-16 space-y-8">
         <h1 className="text-4xl font-bold">О нас</h1>
 
