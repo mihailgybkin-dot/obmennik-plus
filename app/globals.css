@@ -1,0 +1,33 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #000000;
+  --card: rgba(255,255,255,0.06);
+  --glow: rgba(46, 255, 196, 0.35);
+}
+
+html, body {
+  background: var(--bg);
+  color: #e5e7eb;
+}
+
+.card {
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  border-radius: 1rem;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 0 32px var(--glow);
+}
+.btn {
+  @apply px-4 py-2 rounded-xl font-semibold;
+  background: linear-gradient(135deg,#2AF598,#08AEEA);
+  color: #0b0f10;
+}
+.btn:hover { filter: brightness(1.1); }
+.link { color:#00E5FF; }
+.badge { @apply px-2 py-1 rounded-full text-xs; background: rgba(255,255,255,0.08); }
+h1 { @apply text-3xl md:text-5xl font-bold; }
+h2 { @apply text-2xl md:text-3xl font-semibold; }
