@@ -1,19 +1,20 @@
-import NavBar from "../components/NavBar";
 import Calculator from "../components/Calculator";
 import Features from "../components/Features";
 import FAQ from "../components/FAQ";
-import Logo from "../components/Logo";
 
 export default function Page(){
   return (
     <main>
-      <NavBar/>
       <section className="mx-auto max-w-6xl px-4 pt-28 pb-12">
+        {/* Центральная надпись */}
         <div className="text-center mb-10">
-          <div className="inline-block">
-            <Logo size={140} />
+          <div className="font-extrabold tracking-tight">
+            <span className="text-5xl sm:text-6xl text-white">Обменник</span>
+            <span className="text-5xl sm:text-6xl text-[#F5C84B]"> +</span>
           </div>
-          <div className="mt-3 text-xl opacity-90">— быстро. просто. в Краснодаре.</div>
+          <div className="mt-3 text-xl opacity-90">
+            БЫСТРО. ПРОСТО. С ПЛЮСОМ<span className="text-[#F5C84B]"> +</span>
+          </div>
         </div>
 
         <Calculator/>
