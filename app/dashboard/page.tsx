@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import NavBar from '../../components/NavBar';
 import { refCodeFromEmail } from '../../lib';
 
 function getEmail(): string | null {
@@ -24,16 +23,8 @@ export default function Dashboard(){
     setHistory(h? JSON.parse(h) : []);
   }, []);
 
-  const createDemoOrder = () => {
-    const entry = { id: Date.now(), type:'RUB→USDT', give: 100000, get: 1000, status:'Новая', ts: new Date().toISOString() };
-    const next = [entry, ...history];
-    setHistory(next);
-    localStorage.setItem('history', JSON.stringify(next));
-  };
-
   return (
     <main>
-      <NavBar/>
       <div className="mx-auto max-w-4xl px-4 pt-28 pb-12">
         <h1 className="text-3xl font-bold">Личный кабинет</h1>
 
@@ -42,7 +33,7 @@ export default function Dashboard(){
             <div className="text-lg mb-2">Вход по e-mail</div>
             <EmailLogin/>
             <p className="mt-3 text-sm opacity-70">
-              Если почтовый провайдер не подключён, API вернёт «dev-ссылку» — просто перейдите по ней.
+              Если почтовый провайдер не подключён, появится dev-ссылка — перейдите по ней для входа.
             </p>
           </div>
         ) : (
@@ -56,19 +47,6 @@ export default function Dashboard(){
               <div className="text-lg mb-2">Моя реферальная ссылка</div>
               <div className="opacity-85 break-all">{refLink || '—'}</div>
             </div>
-            <div className="card p-6 mt-4">
-              <div className="text-lg mb-2">История транзакций</div>
-              <div className="opacity-85 text-sm">{history.length===0?'Пока пусто.':' '}</div>
-              <div className="mt-2 space-y-2">
-                {history.map(h => (
-                  <div key={h.id} className="border border-white/10 rounded-lg p-3">
-                    <div className="text-sm">{new Date(h.ts).toLocaleString()} • {h.type}</div>
-                    <div className="text-sm opacity-85">Отдал: {h.give} RUB • Получил: {h.get} USDT • Статус: {h.status}</div>
-                  </div>
-                ))}
-              </div>
-              <button className="btn mt-4 w-full sm:w-auto" onClick={createDemoOrder}>Создать демо-заявку</button>
-            </div>
           </>
         )}
       </div>
@@ -78,7 +56,7 @@ export default function Dashboard(){
 
 function EmailLogin(){
   const [email, setEmail] = useState("");
-  const [devLink, setDevLink] = useState<string>("");
+  const [devLink, setDevLink] = useState("");
 
   const send = async () => {
     try{
@@ -89,15 +67,12 @@ function EmailLogin(){
       });
       const j = await r.json();
       if(j.ok){
-        if (j.dev && j.link) {
-          setDevLink(j.link);
-        } else {
-          alert("Письмо отправлено. Проверьте почту.");
-        }
+        if (j.dev && j.link) setDevLink(j.link);
+        else alert("Письмо отправлено. Проверьте почту.");
       } else {
         alert(j.error || 'Ошибка отправки');
       }
-    }catch(e){ alert('Сеть недоступна'); }
+    }catch{ alert('Сеть недоступна'); }
   };
 
   return (
