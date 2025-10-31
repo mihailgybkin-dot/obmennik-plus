@@ -3,29 +3,34 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Asset = "RUB_CASH" | "USDT_TRC20";
-
 const ASSET_LABEL: Record<Asset, string> = {
   RUB_CASH: "Наличные RUB",
   USDT_TRC20: "USDT TRC20",
 };
+const CITY = "Краснодар";
 
-function norm(n: number) {
-  if (!isFinite(n)) return 0;
-  return Math.max(0, n);
+const fmtRub = (n: number) =>
+  n.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
+const fmtUsdt = (n: number) =>
+  n.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function uuid() {
+  // простая uuid v4
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+    const r = (Math.random()*16)|0, v = c === "x" ? r : (r&0x3|0x8);
+    return v.toString(16);
+  });
 }
 
 export default function Calculator() {
   const [from, setFrom] = useState<Asset>("RUB_CASH");
   const [to, setTo] = useState<Asset>("USDT_TRC20");
-  const [city] = useState("Краснодар");
+  const [rate, setRate] = useState<number>(82); // Rapira USDT→RUB (в фоне)
+  const [left, setLeft] = useState<string>("");   // ввод пользователя слева
+  const [right, setRight] = useState<string>(""); // ввод пользователя справа
+  const activeRef = useRef<"left"|"right">("left");
 
-  const [rate, setRate] = useState<number>(82); // базовый Rapira USDT→RUB
-  const [left, setLeft] = useState<string>("");
-  const [right, setRight] = useState<string>("");
-
-  const activeRef = useRef<"left" | "right">("left");
-
-  // Подтягиваем курс и обновляем каждые 30 секунд
+  // тянем курс с бэка каждые 30 секунд
   useEffect(() => {
     let stop = false;
     const load = async () => {
@@ -40,56 +45,86 @@ export default function Calculator() {
     return () => { stop = true; clearInterval(t); };
   }, []);
 
-  // Цена сделки с наценкой/скидкой
+  // итоговый «Курс сделки» (без отображения Rapira)
   const effective = useMemo(() => {
-    // RUB -> USDT : курс = Rapira + 1
-    if (from === "RUB_CASH" && to === "USDT_TRC20") return rate + 1;
-    // USDT -> RUB : курс = Rapira - 1
-    if (from === "USDT_TRC20" && to === "RUB_CASH") return Math.max(1, rate - 1);
+    if (from === "RUB_CASH" && to === "USDT_TRC20") return rate + 1;      // рубли -> USDT
+    if (from === "USDT_TRC20" && to === "RUB_CASH") return Math.max(1, rate - 1); // USDT -> рубли
     return rate;
   }, [from, to, rate]);
 
-  // Пересчёт
+  // пересчёт
   useEffect(() => {
     const L = parseFloat(left.replace(",", "."));
     const R = parseFloat(right.replace(",", "."));
-
     if (activeRef.current === "left") {
       if (from === "RUB_CASH" && to === "USDT_TRC20") {
-        const usdt = norm(L) / effective;
+        const usdt = !isFinite(L) ? 0 : Math.max(0, L) / effective;
         setRight(usdt ? usdt.toFixed(2) : "");
       } else if (from === "USDT_TRC20" && to === "RUB_CASH") {
-        const rub = norm(L) * effective;
-        setRight(rub ? rub.toFixed(0) : "");
-      } else {
-        setRight("");
-      }
+        const rub = !isFinite(L) ? 0 : Math.max(0, L) * effective;
+        setRight(rub ? Math.round(rub).toString() : "");
+      } else setRight("");
     } else {
       if (from === "RUB_CASH" && to === "USDT_TRC20") {
-        const rub = norm(R) * effective;
-        setLeft(rub ? rub.toFixed(0) : "");
+        const rub = !isFinite(R) ? 0 : Math.max(0, R) * effective;
+        setLeft(rub ? Math.round(rub).toString() : "");
       } else if (from === "USDT_TRC20" && to === "RUB_CASH") {
-        const usdt = norm(R) / effective;
+        const usdt = !isFinite(R) ? 0 : Math.max(0, R) / effective;
         setLeft(usdt ? usdt.toFixed(2) : "");
-      } else {
-        setLeft("");
-      }
+      } else setLeft("");
     }
   }, [left, right, from, to, effective]);
 
-  // Смена направлений
-  function flip() {
-    setFrom(to);
-    setTo(from);
-  }
-
-  function createOrder() {
-    // Требуем авторизацию — переводим в кабинет
-    if (typeof window !== "undefined") {
-      const sum = activeRef.current === "left" ? left : right;
-      localStorage.setItem("pending_amount", sum || "");
-      window.location.href = "/dashboard";
+  async function createOrder() {
+    // нужно быть авторизованным (email в localStorage)
+    const email = typeof window !== "undefined" ? localStorage.getItem("email") : null;
+    if (!email) {
+      if (typeof window !== "undefined") window.location.href = "/dashboard";
+      return;
     }
+
+    const id = uuid();
+
+    // какие поля считать «суммой»/текстом для телеграма
+    const isCashToUsdt = from === "RUB_CASH" && to === "USDT_TRC20";
+    const sideText = isCashToUsdt ? "наличных" : "USDT";
+    const sumText = isCashToUsdt
+      ? `${fmtRub(Number(left || "0"))} RUB`
+      : `${fmtUsdt(Number(left || "0"))} USDT`; // при вводе слева
+
+    try {
+      // отправка в Telegram
+      await fetch("/api/order/create", {
+        method: "POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({
+          id,
+          sideText,
+          sumText,
+          dealRate: effective,
+          city: CITY,
+        }),
+      });
+    } catch {}
+
+    // пишем локальную историю для пользователя
+    try {
+      const key = `orders:${email}`;
+      const list = JSON.parse(localStorage.getItem(key) || "[]");
+      list.unshift({
+        id,
+        createdAt: new Date().toISOString(),
+        from,
+        to,
+        amountFrom: left,
+        amountTo: right,
+        rate: effective,
+        city: CITY,
+      });
+      localStorage.setItem(key, JSON.stringify(list.slice(0, 100)));
+    } catch {}
+
+    alert("Заявка создана. Мы свяжемся с вами.");
   }
 
   return (
@@ -140,15 +175,14 @@ export default function Calculator() {
         <div className="text-sm opacity-75">
           Город обмена
           <select disabled className="w-full mt-1 rounded-md bg-black/40 border border-white/15 px-3 py-2">
-            <option>Краснодар</option>
+            <option>{CITY}</option>
           </select>
         </div>
 
         <div className="text-sm opacity-75">
-          Текущий курс
-          <div className="mt-1 rounded-md bg-black/40 border border-white/15 px-3 py-2">
-            <span className="opacity-80">Rapira:</span> {rate.toFixed(2)} ₽ за 1 USDT
-            <span className="opacity-80"> · Сделка:</span> {effective.toFixed(2)} ₽
+          Курс сделки
+          <div className="mt-1 rounded-md bg-black/40 border border-white/15 px-3 py-2 font-medium">
+            {effective.toFixed(2)} ₽ за 1 USDT
           </div>
         </div>
 
@@ -162,12 +196,6 @@ export default function Calculator() {
 
       <div className="text-xs opacity-60 mt-2">
         Курс фиксируется при подтверждении заявки оператором. Подробности — в разделах «Правила» и «AML».
-      </div>
-
-      <div className="mt-3 text-right">
-        <button onClick={flip} className="text-sm opacity-75 hover:opacity-100 underline">
-          Поменять местами направления
-        </button>
       </div>
     </div>
   );
