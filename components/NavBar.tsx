@@ -1,36 +1,43 @@
-'use client';
-import Link from "next/link";
-import Logo from "./Logo";
+"use client";
 
-export default function NavBar(){
+import Link from "next/link";
+import Logo from "@/components/Logo";
+
+export default function NavBar() {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur bg-black/40 border-b border-white/10">
-      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-        <Link href="/" aria-label="Обменник +" className="flex items-center gap-3">
-          <Logo size={36} />
-          <div className="flex items-baseline font-extrabold tracking-tight">
-            <span className="text-white text-lg leading-none">ОБМЕННИК</span>
-            <span className="text-[#F5C84B] text-lg leading-none ml-1">+</span>
-          </div>
+    <header className="fixed inset-x-0 top-0 z-50 backdrop-blur bg-black/70 border-b border-white/10">
+      <nav className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2">
+          <Logo />
+          <span className="font-bold tracking-wide">
+            ОБМЕННИК<span className="text-yellow-400"> +</span>
+          </span>
         </Link>
 
-        {/* Desktop */}
         <div className="hidden md:flex items-center gap-6 text-sm">
           <Link href="/about" className="hover:opacity-80">О нас</Link>
-          <a href="/#features" className="hover:opacity-80">Преимущества</a>
-          <a href="/#faq" className="hover:opacity-80">FAQ</a>
+          <Link href="/#benefits" className="hover:opacity-80">Преимущества</Link>
+          <Link href="/#faq" className="hover:opacity-80">FAQ</Link>
           <Link href="/rules" className="hover:opacity-80">Правила</Link>
           <Link href="/aml" className="hover:opacity-80">AML</Link>
-          <a href="https://t.me/mikhail_gubkin" target="_blank" className="btn">Написать в поддержку</a>
-          <Link href="/dashboard" className="badge">Вход / Кабинет</Link>
         </div>
 
-        {/* Mobile */}
-        <div className="md:hidden flex items-center gap-2">
-          <a href="https://t.me/mikhail_gubkin" target="_blank" className="btn px-3 py-2 text-sm">Поддержка</a>
-          <Link href="/dashboard" className="badge px-3 py-2 text-sm">Кабинет</Link>
+        <div className="flex items-center gap-2">
+          <a
+            href="https://t.me/mikhail_gubkin"
+            target="_blank"
+            className="px-3 py-1.5 rounded-md bg-emerald-500 hover:bg-emerald-400 text-black font-medium"
+          >
+            Написать в поддержку
+          </a>
+          <Link
+            href="/dashboard"
+            className="hidden sm:inline-flex px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 border border-white/15"
+          >
+            Вход / Кабинет
+          </Link>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </header>
   );
 }
