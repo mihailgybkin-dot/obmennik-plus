@@ -2,9 +2,9 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-// Не даём Next пытаться статически пререндерить — страница динамическая.
+// Делаем страницу динамической и запрещаем пререндер.
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
+// ВАЖНО: НЕ экспортируем revalidate — он тут не нужен.
 
 function CallbackInner() {
   const sp = useSearchParams();
