@@ -2,9 +2,9 @@
 import Link from "next/link";
 
 type Props = {
-  size?: number;          // пиксели
-  asLink?: boolean;       // сделать кликабельным, ведёт на /
-  title?: string;         // для a11y
+  size?: number;          // px
+  asLink?: boolean;       // клик ведёт на /
+  title?: string;
 };
 
 export default function Logo({ size = 64, asLink = false, title = "Обменник +" }: Props) {
@@ -17,21 +17,22 @@ export default function Logo({ size = 64, asLink = false, title = "Обменн�
       role="img"
       className="drop-shadow-[0_0_20px_rgba(255,255,255,0.08)]"
     >
-      {/* Большая O */}
-      <circle
-        cx="50"
+      {/* Узкая жирная O (эллипс) */}
+      <ellipse
+        cx="46"    /* слегка смещаем влево, чтобы плюс «сел» красивее */
         cy="50"
-        r="34"
+        rx="26"    /* уже */
+        ry="34"    /* выше */
         fill="none"
         stroke="white"
-        strokeWidth="10"
+        strokeWidth="12"  /* жирнее */
         strokeLinecap="round"
       />
-      {/* Жёлтый плюс внизу-справа (как индекс) */}
-      <g transform="translate(64,66)">
-        <rect x="-10" y="-10" width="20" height="20" rx="5" fill="rgba(0,0,0,0.25)" />
-        <rect x="-7" y="-2" width="14" height="4" rx="2" fill="#F5C84B" />
-        <rect x="-2" y="-7" width="4"  height="14" rx="2" fill="#F5C84B" />
+      {/* Больший жёлтый плюс снизу-справа */}
+      <g transform="translate(68,70)">
+        <rect x="-14" y="-14" width="28" height="28" rx="7" fill="rgba(0,0,0,0.25)" />
+        <rect x="-10" y="-3" width="20" height="6" rx="3" fill="#F5C84B" />
+        <rect x="-3"  y="-10" width="6"  height="20" rx="3" fill="#F5C84B" />
       </g>
     </svg>
   );
