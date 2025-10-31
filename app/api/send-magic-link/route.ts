@@ -2,14 +2,6 @@ import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { Resend } from "resend";
 
-/**
- * ENV:
- *  - SITE_URL=https://obmennikplus.ru
- *  - JWT_SECRET=длинная_строка
- *  - (опц.) RESEND_API_KEY=...
- *  - (опц.) RESEND_FROM=login@obmennikplus.ru
- */
-
 const SITE_URL = process.env.SITE_URL || "";
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
@@ -45,7 +37,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // dev-режим без почтового провайдера
+    // dev-режим — возвращаем ссылку прямо в ответе
     return NextResponse.json({ ok: true, dev: true, link });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message || "send error" }, { status: 500 });
