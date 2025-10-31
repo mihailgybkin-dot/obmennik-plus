@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import NavBar from '@/components/NavBar';
-import { refCodeFromEmail } from '../../lib'; // используем как генератор кода и для телефона
+import NavBar from '../../components/NavBar';
+import { refCodeFromEmail } from '../../lib';
 
 function getPhone(): string | null {
   if (typeof window === 'undefined') return null;
@@ -14,7 +14,7 @@ export default function Dashboard(){
 
   const refLink = useMemo(()=>{
     if(!phone) return '';
-    const code = refCodeFromEmail(phone); // ок для детерминированного кода
+    const code = refCodeFromEmail(phone);
     return `${window.location.origin}/r/${code}`;
   }, [phone]);
 
@@ -39,9 +39,9 @@ export default function Dashboard(){
 
         {!phone ? (
           <div className="card p-6 mt-4">
-            <div className="text-lg mb-2">Быстрый вход по номеру телефона</div>
+            <div className="text-lg mb-2">Вход по SMS</div>
             <PhoneLogin/>
-            <p className="mt-3 text-sm opacity-70">Для MVP: номер сохраняется локально в браузере. Для продакшена подключим SMS-верификацию.</p>
+            <p className="mt-3 text-sm opacity-70">Код приходит в SMS. Для теста без провайдера возможен dev-режим (код вернётся из API).</p>
           </div>
         ) : (
           <>
@@ -75,25 +75,76 @@ export default function Dashboard(){
 }
 
 function PhoneLogin(){
-  const [phone, setPhone] = useState('');
+  const [step, setStep] = useState<"enter"|"code">("enter");
+  const [phone, setPhone] = useState("");
+  const [token, setToken] = useState<string>("");
+  const [code, setCode] = useState("");
 
-  const save = () => {
-    const cleaned = phone.replace(/[^\d+]/g,'');
+  const send = async () => {
+    const cleaned = phone.replace(/[^\d+]/g, '');
     if (cleaned.length < 8) { alert('Введите корректный номер'); return; }
-    localStorage.setItem('phone', cleaned);
-    location.href='/dashboard';
+    try{
+      const r = await fetch('/api/phone/send', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ phone: cleaned })
+      });
+      const j = await r.json();
+      if(j.ok){
+        setToken(j.token);
+        setStep("code");
+        if (j.dev && j.code) {
+          // dev-режим: показываем код пользователю для теста
+          alert(`DEV: ваш код ${j.code}`);
+        }
+      } else {
+        alert(j.error || 'Ошибка отправки');
+      }
+    }catch(e){ alert('Сеть недоступна'); }
+  };
+
+  const verify = async () => {
+    try{
+      const r = await fetch('/api/phone/verify', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ token, code })
+      });
+      const j = await r.json();
+      if(j.ok){
+        localStorage.setItem('phone', j.phone);
+        location.href='/dashboard';
+      } else {
+        alert(j.error || 'Неверный код');
+      }
+    }catch(e){ alert('Сеть недоступна'); }
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-2">
-      <input
-        value={phone}
-        onChange={e=>setPhone(e.target.value)}
-        placeholder="+7 999 123-45-67"
-        inputMode="tel"
-        className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:ring-2 focus:ring-cyan-400"
-      />
-      <button onClick={save} className="btn px-6">Войти</button>
+    <div className="space-y-3">
+      {step === "enter" ? (
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            value={phone}
+            onChange={e=>setPhone(e.target.value)}
+            placeholder="+7 999 123-45-67"
+            inputMode="tel"
+            className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:ring-2 focus:ring-cyan-400"
+          />
+          <button onClick={send} className="btn px-6">Получить код</button>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            value={code}
+            onChange={e=>setCode(e.target.value)}
+            placeholder="Код из SMS"
+            inputMode="numeric"
+            className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:ring-2 focus:ring-cyan-400"
+          />
+          <button onClick={verify} className="btn px-6">Подтвердить</button>
+        </div>
+      )}
     </div>
   );
 }
