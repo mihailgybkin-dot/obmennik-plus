@@ -10,13 +10,12 @@ export default function Calculator(){
   const [to, setTo] = useState<Currency>("USDT_TRC20");
   const [city, setCity] = useState("Краснодар");
   const [amount, setAmount] = useState("");
-  const [rate, setRate] = useState<number | null>(null); // RUB per 1 USDT (Rapira не показываем)
+  const [rate, setRate] = useState<number | null>(null); // RUB за 1 USDT (Rapira, не показываем)
   const [authed, setAuthed] = useState(false);
   const router = useRouter();
 
-  useEffect(()=>{ setAuthed(!!localStorage.getItem("phone")); }, []);
+  useEffect(()=>{ setAuthed(!!localStorage.getItem("email")); }, []);
 
-  // подтягиваем курс Rapira, но НЕ показываем его
   useEffect(()=>{
     const load = async () => {
       try {
@@ -30,7 +29,6 @@ export default function Calculator(){
     return () => clearInterval(id);
   }, []);
 
-  // пресеты
   useEffect(()=>{
     if (from === "RUB_CASH") setTo("USDT_TRC20");
     if (from === "USDT_TRC20") setTo("RUB_CASH");
@@ -41,10 +39,10 @@ export default function Calculator(){
     if (!rate || a <= 0) return "0";
     if (from === "USD_CASH" || to === "USD_CASH") return "по запросу";
     if (from === "USDT_TRC20" && to === "RUB_CASH") {
-      const r = (rate - 1);           // минус 1 ₽
+      const r = (rate - 1);
       return Math.max(0, a * r).toFixed(0) + " RUB";
     } else {
-      const r = (rate + 1);           // плюс 1 ₽
+      const r = (rate + 1);
       return (a / r).toFixed(4) + " USDT";
     }
   }, [amount, rate, from, to]);
