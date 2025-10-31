@@ -32,12 +32,12 @@ export async function POST(req: Request) {
         from: RESEND_FROM,
         to: email,
         subject: "Вход в Обменник +",
-        text: `Перейдите по ссылке для входа: ${link}\nСсылка действительна 15 минут.`,
+        text: `Перейдите по ссылке для входа: ${link}\nСсылка действительна 15 минут.`
       });
       return NextResponse.json({ ok: true });
     }
 
-    // dev-режим — возвращаем ссылку прямо в ответе
+    // dev-режим — показываем ссылку напрямую
     return NextResponse.json({ ok: true, dev: true, link });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message || "send error" }, { status: 500 });
