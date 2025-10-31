@@ -1,164 +1,173 @@
-'use client';
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+"use client";
 
-type Currency = "RUB_CASH" | "USDT_TRC20" | "USD_CASH";
-const TELEGRAM_URL = "https://t.me/mikhail_gubkin";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-/** конвертация только для пары RUB <-> USDT */
-function convert(amount: number, from: Currency, to: Currency, rateRubPerUsdt: number): number | null {
-  if (!rateRubPerUsdt || amount <= 0) return 0;
-  const RUB2USDT = (a: number) => a / (rateRubPerUsdt + 1);   // +1 ₽
-  const USDT2RUB = (a: number) => a * (rateRubPerUsdt - 1);   // -1 ₽
+type Asset = "RUB_CASH" | "USDT_TRC20";
 
-  if (from === "RUB_CASH" && to === "USDT_TRC20") return RUB2USDT(amount);
-  if (from === "USDT_TRC20" && to === "RUB_CASH") return USDT2RUB(amount);
-  return null; // прочие пары — не считаем (по запросу)
+const ASSET_LABEL: Record<Asset, string> = {
+  RUB_CASH: "Наличные RUB",
+  USDT_TRC20: "USDT TRC20",
+};
+
+function norm(n: number) {
+  if (!isFinite(n)) return 0;
+  return Math.max(0, n);
 }
 
-export default function Calculator(){
-  const [from, setFrom] = useState<Currency>("RUB_CASH");
-  const [to, setTo] = useState<Currency>("USDT_TRC20");
-  const [city, setCity] = useState("Краснодар");
+export default function Calculator() {
+  const [from, setFrom] = useState<Asset>("RUB_CASH");
+  const [to, setTo] = useState<Asset>("USDT_TRC20");
+  const [city] = useState("Краснодар");
 
-  const [fromVal, setFromVal] = useState<string>("");
-  const [toVal, setToVal] = useState<string>("");
+  const [rate, setRate] = useState<number>(82); // базовый Rapira USDT→RUB
+  const [left, setLeft] = useState<string>("");
+  const [right, setRight] = useState<string>("");
 
-  const [rate, setRate] = useState<number | null>(null); // RUB за 1 USDT
-  const [authed, setAuthed] = useState(false);
-  const router = useRouter();
+  const activeRef = useRef<"left" | "right">("left");
 
-  // кто последний менял поле: чтобы не зациклить пересчёт
-  const lastEdited = useRef<"from" | "to">("from");
-
-  useEffect(()=>{ setAuthed(!!localStorage.getItem("email")); }, []);
-
-  // --- курс Rapira ---
-  useEffect(()=>{
-    let mounted = true;
+  // Подтягиваем курс и обновляем каждые 30 секунд
+  useEffect(() => {
+    let stop = false;
     const load = async () => {
       try {
-        const r = await fetch("/api/rapira", {
-          cache: "no-store",
-          headers: { "x-no-cache": "1" },
-        });
+        const r = await fetch("/api/rapira", { cache: "no-store" });
         const j = await r.json();
-        if (mounted && j?.rate) setRate(j.rate);
+        if (!stop && j?.rate) setRate(Number(j.rate));
       } catch {}
     };
     load();
-    const id = setInterval(load, 10_000); // каждые 10 сек
-    return () => { mounted = false; clearInterval(id); };
+    const t = setInterval(load, 30000);
+    return () => { stop = true; clearInterval(t); };
   }, []);
 
-  // автоматический выбор обратной валюты для пары
-  useEffect(()=>{
-    if (from === "RUB_CASH") setTo("USDT_TRC20");
-    if (from === "USDT_TRC20") setTo("RUB_CASH");
-  }, [from]);
+  // Цена сделки с наценкой/скидкой
+  const effective = useMemo(() => {
+    // RUB -> USDT : курс = Rapira + 1
+    if (from === "RUB_CASH" && to === "USDT_TRC20") return rate + 1;
+    // USDT -> RUB : курс = Rapira - 1
+    if (from === "USDT_TRC20" && to === "RUB_CASH") return Math.max(1, rate - 1);
+    return rate;
+  }, [from, to, rate]);
 
-  // пересчёт «другого» поля
-  const recalc = useCallback(() => {
-    if (!rate) return;
-    const aFrom = parseFloat(fromVal.replace(",", ".")) || 0;
-    const aTo   = parseFloat(toVal.replace(",", ".")) || 0;
+  // Пересчёт
+  useEffect(() => {
+    const L = parseFloat(left.replace(",", "."));
+    const R = parseFloat(right.replace(",", "."));
 
-    if (lastEdited.current === "from") {
-      const res = convert(aFrom, from, to, rate);
-      if (res === null) return; // несчитаемая пара
-      setToVal(res <= 0 ? "" : (to === "RUB_CASH" ? res.toFixed(0) : res.toFixed(4)));
+    if (activeRef.current === "left") {
+      if (from === "RUB_CASH" && to === "USDT_TRC20") {
+        const usdt = norm(L) / effective;
+        setRight(usdt ? usdt.toFixed(2) : "");
+      } else if (from === "USDT_TRC20" && to === "RUB_CASH") {
+        const rub = norm(L) * effective;
+        setRight(rub ? rub.toFixed(0) : "");
+      } else {
+        setRight("");
+      }
     } else {
-      const resBack = convert(aTo, to, from, rate);
-      if (resBack === null) return;
-      setFromVal(resBack <= 0 ? "" : (from === "RUB_CASH" ? resBack.toFixed(0) : resBack.toFixed(4)));
+      if (from === "RUB_CASH" && to === "USDT_TRC20") {
+        const rub = norm(R) * effective;
+        setLeft(rub ? rub.toFixed(0) : "");
+      } else if (from === "USDT_TRC20" && to === "RUB_CASH") {
+        const usdt = norm(R) / effective;
+        setLeft(usdt ? usdt.toFixed(2) : "");
+      } else {
+        setLeft("");
+      }
     }
-  }, [from, to, rate, fromVal, toVal]);
+  }, [left, right, from, to, effective]);
 
-  useEffect(()=>{ recalc(); }, [from, to, rate]); // при смене курса/валют
+  // Смена направлений
+  function flip() {
+    setFrom(to);
+    setTo(from);
+  }
 
-  const onCreate = () => {
-    if (!authed) { router.push("/dashboard"); return; }
-    window.location.href = TELEGRAM_URL;
-  };
-
-  const editablePair = useMemo(()=>{
-    return (
-      (from === "RUB_CASH" && to === "USDT_TRC20") ||
-      (from === "USDT_TRC20" && to === "RUB_CASH")
-    );
-  }, [from, to]);
+  function createOrder() {
+    // Требуем авторизацию — переводим в кабинет
+    if (typeof window !== "undefined") {
+      const sum = activeRef.current === "left" ? left : right;
+      localStorage.setItem("pending_amount", sum || "");
+      window.location.href = "/dashboard";
+    }
+  }
 
   return (
-    <div id="rates" className="card p-4 sm:p-6">
+    <div className="card p-6 md:p-8">
       <div className="grid md:grid-cols-2 gap-4">
-        {/* FROM */}
+        {/* Слева */}
         <div>
-          <label className="block text-sm mb-1">Вы отдаёте</label>
-          <div className="flex gap-2">
-            <select
-              value={from}
-              onChange={e=>setFrom(e.target.value as Currency)}
-              className="bg-black/50 border border-white/10 rounded-xl p-3 grow"
-            >
-              <option value="RUB_CASH">Наличные RUB</option>
-              <option value="USDT_TRC20">USDT TRC20</option>
-              <option value="USD_CASH">Наличные USD</option>
-            </select>
-            <input
-              value={fromVal}
-              onChange={e=>{ lastEdited.current="from"; setFromVal(e.target.value); }}
-              inputMode="decimal"
-              placeholder="Сумма"
-              className="bg-black/50 border border-white/10 rounded-xl p-3 w-36 sm:w-40"
-            />
-          </div>
+          <div className="text-sm opacity-75 mb-1">Вы отдаёте</div>
+          <select
+            value={from}
+            onChange={(e) => setFrom(e.target.value as Asset)}
+            className="w-full rounded-md bg-black/40 border border-white/15 px-3 py-2"
+          >
+            <option value="RUB_CASH">{ASSET_LABEL.RUB_CASH}</option>
+            <option value="USDT_TRC20">{ASSET_LABEL.USDT_TRC20}</option>
+          </select>
+          <input
+            inputMode="decimal"
+            placeholder="Сумма"
+            value={left}
+            onChange={(e) => { activeRef.current = "left"; setLeft(e.target.value.replace(/[^\d.,]/g, "")); }}
+            className="mt-2 w-full rounded-md bg-black/40 border border-white/15 px-3 py-2"
+          />
         </div>
 
-        {/* TO */}
+        {/* Справа */}
         <div>
-          <label className="block text-sm mb-1">Вы получаете</label>
-          <div className="flex gap-2">
-            <select
-              value={to}
-              onChange={e=>setTo(e.target.value as Currency)}
-              className="bg-black/50 border border-white/10 rounded-xl p-3 grow"
-            >
-              <option value="USDT_TRC20">USDT TRC20</option>
-              <option value="RUB_CASH">Наличные RUB</option>
-              <option value="USD_CASH">Наличные USD</option>
-            </select>
-
-            {/* правое поле теперь тоже редактируемое */}
-            <input
-              value={toVal}
-              onChange={e=>{ lastEdited.current="to"; setToVal(e.target.value); }}
-              inputMode="decimal"
-              placeholder={editablePair ? "Сумма" : "по запросу"}
-              className="bg-black/50 border border-white/10 rounded-xl p-3 w-36 sm:w-40"
-              disabled={!editablePair && !toVal}
-            />
-          </div>
+          <div className="text-sm opacity-75 mb-1">Вы получаете</div>
+          <select
+            value={to}
+            onChange={(e) => setTo(e.target.value as Asset)}
+            className="w-full rounded-md bg-black/40 border border-white/15 px-3 py-2"
+          >
+            <option value="USDT_TRC20">{ASSET_LABEL.USDT_TRC20}</option>
+            <option value="RUB_CASH">{ASSET_LABEL.RUB_CASH}</option>
+          </select>
+          <input
+            inputMode="decimal"
+            placeholder="Сумма"
+            value={right}
+            onChange={(e) => { activeRef.current = "right"; setRight(e.target.value.replace(/[^\d.,]/g, "")); }}
+            className="mt-2 w-full rounded-md bg-black/40 border border-white/15 px-3 py-2"
+          />
         </div>
       </div>
 
-      <div className="mt-4 grid sm:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm mb-1">Город обмена</label>
-          <select
-            value={city}
-            onChange={e=>setCity(e.target.value)}
-            className="bg-black/50 border border-white/10 rounded-xl p-3 w-full"
-          >
+      <div className="grid md:grid-cols-3 gap-3 mt-4">
+        <div className="text-sm opacity-75">
+          Город обмена
+          <select disabled className="w-full mt-1 rounded-md bg-black/40 border border-white/15 px-3 py-2">
             <option>Краснодар</option>
           </select>
         </div>
-        <div className="sm:col-span-2 flex items-end">
-          <button onClick={onCreate} className="btn w-full py-3 text-base">Создать заявку</button>
+
+        <div className="text-sm opacity-75">
+          Текущий курс
+          <div className="mt-1 rounded-md bg-black/40 border border-white/15 px-3 py-2">
+            <span className="opacity-80">Rapira:</span> {rate.toFixed(2)} ₽ за 1 USDT
+            <span className="opacity-80"> · Сделка:</span> {effective.toFixed(2)} ₽
+          </div>
         </div>
+
+        <button
+          onClick={createOrder}
+          className="h-10 self-end rounded-md bg-cyan-500 hover:bg-cyan-400 text-black font-semibold"
+        >
+          Создать заявку
+        </button>
       </div>
 
-      <div className="mt-3 text-xs opacity-70">
-        Курс фиксируется при создании заявки. Подробности — в разделах «Правила» и «AML».
+      <div className="text-xs opacity-60 mt-2">
+        Курс фиксируется при подтверждении заявки оператором. Подробности — в разделах «Правила» и «AML».
+      </div>
+
+      <div className="mt-3 text-right">
+        <button onClick={flip} className="text-sm opacity-75 hover:opacity-100 underline">
+          Поменять местами направления
+        </button>
       </div>
     </div>
   );
