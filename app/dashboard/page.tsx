@@ -1,98 +1,105 @@
-'use client';
-import { useEffect, useMemo, useState } from 'react';
-import { refCodeFromEmail } from '../../lib';
+"use client";
 
-function getEmail(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('email') || null;
-}
+import { useEffect, useMemo, useState } from "react";
 
-export default function Dashboard(){
+type Row = {
+  id: string;
+  createdAt: string;
+  from: "RUB_CASH" | "USDT_TRC20";
+  to: "RUB_CASH" | "USDT_TRC20";
+  amountFrom: string;
+  amountTo: string;
+  rate: number;
+  city: string;
+};
+
+const L = (a: "RUB_CASH"|"USDT_TRC20") => a === "RUB_CASH" ? "Наличные RUB" : "USDT TRC20";
+
+export default function Dashboard() {
   const [email, setEmail] = useState<string | null>(null);
-  useEffect(()=>{ setEmail(getEmail()); }, []);
+  const [orders, setOrders] = useState<Row[]>([]);
+  const site = typeof window !== "undefined" ? window.location.origin : "";
+  const ref = useMemo(() => {
+    const base = site || "https://obmennikplus.ru";
+    // простая "рефка" — хэш из почты
+    const code = (email || "guest").split("").reduce((a,c)=> (a*31 + c.charCodeAt(0)) % 1_000_000, 7).toString(36);
+    return `${base}/r/${code}`;
+  }, [email, site]);
 
-  const refLink = useMemo(()=>{
-    if(!email) return '';
-    const code = refCodeFromEmail(email);
-    return `${window.location.origin}/r/${code}`;
-  }, [email]);
-
-  const [history, setHistory] = useState<any[]>([]);
-  useEffect(()=>{
-    const h = localStorage.getItem('history');
-    setHistory(h? JSON.parse(h) : []);
+  useEffect(() => {
+    const e = localStorage.getItem("email");
+    setEmail(e);
+    if (e) {
+      try {
+        const key = `orders:${e}`;
+        const list: Row[] = JSON.parse(localStorage.getItem(key) || "[]");
+        setOrders(list);
+      } catch { setOrders([]); }
+    }
   }, []);
 
   return (
     <main>
-      <div className="mx-auto max-w-4xl px-4 pt-28 pb-12">
-        <h1 className="text-3xl font-bold">Личный кабинет</h1>
+      <div className="mx-auto max-w-4xl px-4 pt-28 pb-16 space-y-8">
+        <h1 className="text-4xl font-bold">Личный кабинет</h1>
 
-        {!email ? (
-          <div className="card p-6 mt-4">
-            <div className="text-lg mb-2">Вход по e-mail</div>
-            <EmailLogin/>
-            <p className="mt-3 text-sm opacity-70">
-              Если почтовый провайдер не подключён, появится dev-ссылка — перейдите по ней для входа.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="card p-6 mt-4">
-              <div className="text-lg mb-2">Профиль</div>
-              <div className="opacity-85">E-mail: <b>{email}</b></div>
-              <button className="badge mt-3" onClick={()=>{localStorage.removeItem('email'); location.reload();}}>Выйти</button>
-            </div>
-            <div className="card p-6 mt-4">
-              <div className="text-lg mb-2">Моя реферальная ссылка</div>
-              <div className="opacity-85 break-all">{refLink || '—'}</div>
-            </div>
-          </>
-        )}
+        <section className="card p-6">
+          <div className="font-semibold mb-2">Профиль</div>
+          <div className="opacity-85">E-mail: <b>{email || "не авторизован"}</b></div>
+          {!email && (
+            <a href="/dashboard" className="inline-block mt-3 px-3 py-1.5 rounded-md bg-white/10 border border-white/15">
+              Войти
+            </a>
+          )}
+        </section>
+
+        <section className="card p-6">
+          <div className="font-semibold mb-2">Моя реферальная ссылка</div>
+          <div className="break-all">{ref}</div>
+        </section>
+
+        <section className="card p-6">
+          <div className="font-semibold mb-4">История заявок</div>
+          {email ? (
+            orders.length ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-left opacity-70">
+                    <tr>
+                      <th className="py-2 pr-4">Дата</th>
+                      <th className="py-2 pr-4">ID</th>
+                      <th className="py-2 pr-4">Из</th>
+                      <th className="py-2 pr-4">В</th>
+                      <th className="py-2 pr-4">Сумма</th>
+                      <th className="py-2 pr-4">Получите</th>
+                      <th className="py-2 pr-4">Курс</th>
+                      <th className="py-2 pr-4">Город</th>
+                    </tr>
+                  </thead>
+                  <tbody className="opacity-90">
+                    {orders.map(o => (
+                      <tr key={o.id} className="border-t border-white/10">
+                        <td className="py-2 pr-4">{new Date(o.createdAt).toLocaleString("ru-RU")}</td>
+                        <td className="py-2 pr-4">{o.id}</td>
+                        <td className="py-2 pr-4">{L(o.from)}</td>
+                        <td className="py-2 pr-4">{L(o.to)}</td>
+                        <td className="py-2 pr-4">{o.amountFrom}</td>
+                        <td className="py-2 pr-4">{o.amountTo}</td>
+                        <td className="py-2 pr-4">{o.rate.toFixed(2)}</td>
+                        <td className="py-2 pr-4">{o.city}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="opacity-80">Заявок пока нет.</div>
+            )
+          ) : (
+            <div className="opacity-80">Войдите, чтобы видеть историю заявок.</div>
+          )}
+        </section>
       </div>
     </main>
-  );
-}
-
-function EmailLogin(){
-  const [email, setEmail] = useState("");
-  const [devLink, setDevLink] = useState("");
-
-  const send = async () => {
-    try{
-      const r = await fetch('/api/send-magic-link', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ email })
-      });
-      const j = await r.json();
-      if(j.ok){
-        if (j.dev && j.link) setDevLink(j.link);
-        else alert("Письмо отправлено. Проверьте почту.");
-      } else {
-        alert(j.error || 'Ошибка отправки');
-      }
-    }catch{ alert('Сеть недоступна'); }
-  };
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-col sm:flex-row gap-2">
-        <input
-          value={email}
-          onChange={e=>setEmail(e.target.value)}
-          placeholder="you@example.com"
-          inputMode="email"
-          className="w-full bg-black/50 border border-white/10 rounded-xl p-3 outline-none focus:ring-2 focus:ring-cyan-400"
-        />
-        <button onClick={send} className="btn px-6">Отправить ссылку</button>
-      </div>
-      {devLink && (
-        <div className="text-sm">
-          Dev-ссылка для входа:{" "}
-          <a href={devLink} className="underline break-all">{devLink}</a>
-        </div>
-      )}
-    </div>
   );
 }
