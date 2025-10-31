@@ -1,7 +1,7 @@
 
-import NavBar from "@/components/NavBar";
-import Calculator from "@/components/Calculator";
-import Features from "@/components/Features";
+import NavBar from "../components/NavBar";
+import Calculator from "../components/Calculator";
+import Features from "../components/Features";
 
 export default function Page(){
   return (
