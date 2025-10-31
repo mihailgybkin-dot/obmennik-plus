@@ -1,45 +1,25 @@
+export const metadata = { title: "Правила — Обменник +" };
 
-import NavBar from "../components/NavBar";
-import Calculator from "../components/Calculator";
-import Features from "../components/Features";
-
-export default function Page(){
+export default function Rules(){
   return (
-    <main>
-      <NavBar/>
-      <section className="mx-auto max-w-6xl px-4 pt-28 pb-12">
-        <div className="card p-8 mb-8">
-          <h1>Обмен кэш RUB ↔ USDT TRC-20 в Краснодаре</h1>
-          <p className="mt-3 text-lg opacity-90">Честные курсы, быстрые сделки, личный подход.</p>
-          <div className="mt-4 flex gap-3">
-            <a href="/dashboard" className="btn">Создать заявку</a>
-            <a href="#rates" className="badge">К калькулятору</a>
-          </div>
-          <div className="mt-4 flex gap-2 text-xs opacity-75">
-            <span className="badge">Курсы в реальном времени</span>
-            <span className="badge">Подтверждение по email</span>
-            <span className="badge">Краснодар</span>
-          </div>
-        </div>
-        <Calculator/>
-        <div className="mt-10">
-          <h2 className="mb-4">Преимущества</h2>
-          <Features/>
-        </div>
-        <div id="faq" className="mt-10 card p-6">
-          <h2 className="mb-3">FAQ</h2>
-          <ul className="list-disc pl-5 space-y-2 opacity-90 text-sm">
-            <li>Как проходит обмен? — Создаёте заявку, получаете подтверждение, встреча в Краснодаре.</li>
-            <li>Какие документы нужны? — Подтверждение личности по AML.</li>
-            <li>Какая комиссия? — Отображается в калькуляторе перед заявкой.</li>
-            <li>Сколько времени? — Обычно от 5 минут после подтверждения.</li>
-            <li>Где именно? — Место встречи сообщаем после подтверждения заявки.</li>
-          </ul>
-        </div>
-        <footer className="mt-12 opacity-70 text-sm pb-10">
-          © 2025 «Обменник +». Курсы ориентировочные и фиксируются при создании заявки.
-        </footer>
-      </section>
-    </main>
+    <div className="mx-auto max-w-3xl px-4 pt-28 pb-16 space-y-6">
+      <h1 className="text-4xl font-bold">Правила сайта</h1>
+      <p className="opacity-85">Настоящие правила регулируют порядок создания заявок, обмена и взаимодействия с сервисом «Обменник +».</p>
+
+      <div className="card p-6 space-y-3">
+        <h2 className="text-xl font-semibold">1. Общие положения</h2>
+        <p className="opacity-85">Сервис предназначен для лиц старше 18 лет. Используя сайт, вы подтверждаете согласие с Правилами и AML.</p>
+        <h2 className="text-xl font-semibold">2. Заявки и курс</h2>
+        <p className="opacity-85">Курс фиксируется при создании заявки и действует ограниченное время. Обмены проводятся в г. Краснодар, в офисе сервиса.</p>
+        <h2 className="text-xl font-semibold">3. Лимиты и сроки</h2>
+        <p className="opacity-85">Лимиты и время обработки обсуждаются с оператором при подтверждении заявки.</p>
+        <h2 className="text-xl font-semibold">4. Ответственность</h2>
+        <p className="opacity-85">Сервис не несёт ответственности за задержки третьих сторон и технические сбои, не зависящие от нас.</p>
+        <h2 className="text-xl font-semibold">5. Персональные данные</h2>
+        <p className="opacity-85">Данные используются строго для обработки заявок и не передаются третьим лицам, за исключением случаев, предусмотренных законом.</p>
+      </div>
+
+      <p className="text-sm opacity-70">Актуально с: {new Date().toLocaleDateString("ru-RU")}</p>
+    </div>
   );
 }
