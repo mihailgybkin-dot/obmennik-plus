@@ -1,25 +1,37 @@
+"use client";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
-'use client';
-import { useEffect } from 'react';
+export default function AuthCallback(){
+  const sp = useSearchParams();
+  const [msg, setMsg] = useState("Входим...");
 
-export default function Callback(){
   useEffect(()=>{
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    if(token){
-      fetch('/api/verify-token', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ token })
-      }).then(r=>r.json()).then(j=>{
-        if(j.ok){
-          localStorage.setItem('email', j.email);
-          window.location.href='/dashboard';
+    const t = sp.get("token");
+    if (!t) { setMsg("Нет токена"); return; }
+    (async ()=>{
+      try{
+        const r = await fetch("/api/verify-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: t })
+        });
+        const j = await r.json();
+        if (j.ok && j.email) {
+          localStorage.setItem("email", j.email);
+          window.location.replace("/dashboard");
         } else {
-          alert(j.error||'Ошибка подтверждения');
+          setMsg(j.error || "Ошибка входа");
         }
-      }).catch(()=> alert('Сеть недоступна'));
-    }
-  },[]);
-  return <div className="mx-auto max-w-3xl px-4 pt-28 pb-12">Подтверждаем вход…</div>;
+      }catch{
+        setMsg("Сеть недоступна");
+      }
+    })();
+  }, [sp]);
+
+  return (
+    <div className="mx-auto max-w-md px-4 pt-28">
+      <div className="card p-6 text-center">{msg}</div>
+    </div>
+  );
 }
