@@ -1,18 +1,30 @@
+import NavBar from "@/components/NavBar";
+
+export const metadata = { title: "Правила — Обменник +" };
 
 export default function Rules(){
   return (
-    <div className="mx-auto max-w-3xl px-4 pt-28 pb-12">
-      <h1>Правила сервиса</h1>
-      <p className="mt-4 opacity-85">Здесь разместите переформулированные правила на основе открытых источников, адаптированные под «Обменник +». Уберите упоминания сторонних брендов.</p>
-      <ul className="list-disc pl-5 mt-4 space-y-2 opacity-85">
-        <li>Общие положения и определения.</li>
-        <li>Порядок создания заявок и фиксации курса.</li>
-        <li>Лимиты, комиссии, сроки.</li>
-        <li>Ответственность сторон.</li>
-        <li>Обработка персональных данных.</li>
-        <li>Порядок внесения изменений.</li>
-      </ul>
-      <p className="mt-6 text-sm opacity-70">Актуально с: 2025‑10‑31</p>
-    </div>
+    <main>
+      <NavBar/>
+      <div className="mx-auto max-w-3xl px-4 pt-28 pb-16 space-y-6">
+        <h1 className="text-4xl font-bold">Правила сайта</h1>
+        <p className="opacity-85">Настоящие правила регулируют порядок создания заявок, обмена и взаимодействия с сервисом «Обменник +».</p>
+
+        <div className="card p-6 space-y-3">
+          <h2 className="text-xl font-semibold">1. Общие положения</h2>
+          <p className="opacity-85">Сервис предназначен для лиц старше 18 лет. Используя сайт, вы подтверждаете согласие с Правилами и AML.</p>
+          <h2 className="text-xl font-semibold">2. Заявки и курс</h2>
+          <p className="opacity-85">Курс фиксируется при создании заявки и действует ограниченное время. Обмены проводятся в г. Краснодар, в офисе сервиса.</p>
+          <h2 className="text-xl font-semibold">3. Лимиты и сроки</h2>
+          <p className="opacity-85">Лимиты и время обработки обсуждаются с оператором при подтверждении заявки.</p>
+          <h2 className="text-xl font-semibold">4. Ответственность</h2>
+          <p className="opacity-85">Сервис не несёт ответственности за задержки третьих сторон и технические сбои, не зависящие от нас.</p>
+          <h2 className="text-xl font-semibold">5. Персональные данные</h2>
+          <p className="opacity-85">Данные используются строго для обработки заявок и не передаются третьим лицам, за исключением случаев, предусмотренных законом.</p>
+        </div>
+
+        <p className="text-sm opacity-70">Актуально с: {new Date().toLocaleDateString("ru-RU")}</p>
+      </div>
+    </main>
   );
 }
