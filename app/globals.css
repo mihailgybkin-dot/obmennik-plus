@@ -31,3 +31,16 @@ html, body {
 .badge { @apply px-2 py-1 rounded-full text-xs; background: rgba(255,255,255,0.08); }
 h1 { @apply text-3xl md:text-5xl font-bold; }
 h2 { @apply text-2xl md:text-3xl font-semibold; }
+/* Современная типографика + ровный логотип */
+:root { --logo-font: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+
+.logo {
+  font-family: var(--logo-font);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  display: inline-flex;
+  align-items: baseline;
+}
+.logo .brand { font-size: clamp(28px, 6vw, 56px); }
+.logo .plus  { font-size: clamp(28px, 6vw, 56px); color: #f5c84b; margin-left: 6px; }
