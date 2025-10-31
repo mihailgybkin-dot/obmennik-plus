@@ -1,7 +1,7 @@
 
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { refCodeFromEmail } from '@/lib';
+import { refCodeFromEmail } from '../../lib';
 
 function getEmail(): string | null {
   if (typeof window === 'undefined') return null;
