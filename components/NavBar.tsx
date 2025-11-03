@@ -24,7 +24,7 @@ export default function NavBar() {
 
         <div className="flex items-center gap-2">
           <a
-            href="https://t.me/mikhail_gubkin"
+            href="https://t.me/CoinDrop_krd"
             target="_blank"
             className="px-3 py-1.5 rounded-md bg-emerald-500 hover:bg-emerald-400 text-black font-medium"
           >
