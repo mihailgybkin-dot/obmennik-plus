@@ -1,104 +1,71 @@
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";        // запрет статического кеша
-export const revalidate = 0;                   // запрет ISR
-export const runtime = "edge";                 // быстрый edge-рантайм
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const runtime = "edge";
 
 function toNum(v: any): number | null {
-  if (v == null) return null;
-  const s = String(v).replace(/\s/g, "").replace(",", "."); // "82,30" -> "82.30"
-  const n = Number(s);
+  const n = Number(String(v).replace(/\s/g, "").replace(",", "."));
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function pick(obj: any, keys: string[]): number | null {
-  if (!obj || typeof obj !== "object") return null;
-  for (const k of keys) {
-    const n = toNum(obj[k]);
-    if (n) return n;
-  }
-  return null;
-}
-
-function extractRate(json: any): { bid?: number; ask?: number; last?: number; mid?: number } {
-  let bid = pick(json, ["buy", "bestBid", "bid"]);
-  let ask = pick(json, ["sell", "bestAsk", "ask"]);
-  let last = pick(json, ["last", "price", "rate"]);
-
-  const d = json?.data ?? json?.result ?? json?.payload ?? null;
-  if ((!bid && !ask && !last) && d) {
-    bid = pick(d, ["buy", "bestBid", "bid"]) ?? bid;
-    ask = pick(d, ["sell", "bestAsk", "ask"]) ?? ask;
-    last = pick(d, ["last", "price", "rate"]) ?? last;
-  }
-
-  if (!bid && !ask && !last && Array.isArray(json)) {
-    for (const row of json) {
-      const r = extractRate(row);
-      if (r.bid || r.ask || r.last) return r;
-    }
-  }
-
-  const mid = bid && ask ? (bid + ask) / 2 : undefined;
-  return { bid: bid || undefined, ask: ask || undefined, last: last || undefined, mid };
+function topFromSide(side: any): number | null {
+  if (!side || typeof side !== "object") return null;
+  // В этом API top цены лежат в highestPrice, а также первой строкой в items[0].price
+  const hp = toNum(side.highestPrice);
+  const item0 = Array.isArray(side.items) && side.items.length ? toNum(side.items[0].price) : null;
+  return hp ?? item0 ?? null;
 }
 
 export async function GET(req: Request) {
-  const rapiraURL = "https://api.rapira.net/market/exchange-plate-mini?symbol=USDT/RUB";
-  const url = new URL(req.url);
-  const debug = url.searchParams.get("debug") === "1";
+  const url = "https://api.rapira.net/market/exchange-plate-mini?symbol=USDT/RUB";
+  const debug = new URL(req.url).searchParams.get("debug") === "1";
 
   try {
-    const resp = await fetch(rapiraURL, {
+    const resp = await fetch(url, {
       cache: "no-store",
       headers: {
-        "Accept": "application/json, text/plain, */*",
+        Accept: "application/json, text/plain, */*",
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36",
-        "Referer": "https://rapira.net/",
-        "Origin": "https://rapira.net",
+        Referer: "https://rapira.net/",
+        Origin: "https://rapira.net",
       },
     });
 
-    const text = await resp.text();
-    let json: any = null;
-    try { json = JSON.parse(text); } catch { /* бывает */ }
+    const rawText = await resp.text();
+    let data: any = null;
+    try { data = JSON.parse(rawText); } catch {}
 
     if (debug) {
       return NextResponse.json(
-        { ok: resp.ok, status: resp.status, rawText: text, parsed: json },
+        { ok: resp.ok, status: resp.status, rawText, parsed: data },
         { status: resp.ok ? 200 : 502 }
       );
     }
 
-    if (!resp.ok || !json) {
-      return NextResponse.json(
-        { ok: false, error: `rapira http ${resp.status}` },
-        { status: 502 }
-      );
+    if (!resp.ok || !data) {
+      return NextResponse.json({ ok: false, error: `rapira http ${resp.status}` }, { status: 502 });
     }
 
-    const { bid, ask, last, mid } = extractRate(json);
-    const base = toNum(bid && ask ? (bid + ask) / 2 : (mid ?? last));
+    // Ожидаемый формат: { ask: {...}, bid: {...} }
+    const bestAsk = topFromSide(data.ask);
+    const bestBid = topFromSide(data.bid);
+
+    // Если есть обе стороны — берём mid; если одна — её и отдаём.
+    const base =
+      (bestAsk && bestBid) ? (bestAsk + bestBid) / 2 :
+      (bestAsk ?? bestBid ?? null);
+
     if (!base) {
-      return NextResponse.json(
-        { ok: false, error: "cant-parse-rapira-response" },
-        { status: 502 }
-      );
+      return NextResponse.json({ ok: false, error: "cant-parse-rapira-orderbook", sample: data }, { status: 502 });
     }
 
     return NextResponse.json(
-      { ok: true, rate: base, src: "rapira", ts: Date.now(), bid, ask, last },
-      {
-        headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        },
-      }
+      { ok: true, rate: base, bid: bestBid ?? undefined, ask: bestAsk ?? undefined, src: "rapira", ts: Date.now() },
+      { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate" } }
     );
   } catch (e: any) {
-    return NextResponse.json(
-      { ok: false, error: e?.message || "rapira-error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: e?.message || "rapira-error" }, { status: 500 });
   }
 }
