@@ -30,24 +30,30 @@ export default function Calculator() {
   const [right, setRight] = useState<string>(""); // ввод пользователя справа
   const activeRef = useRef<"left"|"right">("left");
 
-  // тянем курс с бэка каждые 10 секунд
+  // тянем курс с бэка каждые 10 секунд (с кэш-бастером)
   useEffect(() => {
     let stop = false;
     const load = async () => {
       try {
-        const r = await fetch("/api/rapira", { cache: "no-store" });
+        const r = await fetch(`/api/rapira?ts=${Date.now()}`, { cache: "no-store" });
         const j = await r.json();
-        if (!stop && j?.rate) setRate(Number(j.rate));
-      } catch {}
+        if (!stop && j?.ok && j?.rate) {
+          setRate(Number(j.rate));
+        } else if (!stop) {
+          console.warn("Rapira fallback:", j);
+        }
+      } catch (e) {
+        if (!stop) console.warn("Rapira fetch error:", e);
+      }
     };
     load();
-    const t = setInterval(load, 30000);
+    const t = setInterval(load, 10000);
     return () => { stop = true; clearInterval(t); };
   }, []);
 
   // итоговый «Курс сделки» (без отображения Rapira)
   const effective = useMemo(() => {
-    if (from === "RUB_CASH" && to === "USDT_TRC20") return rate + 1;      // рубли -> USDT
+    if (from === "RUB_CASH" && to === "USDT_TRC20") return rate + 1;            // рубли -> USDT
     if (from === "USDT_TRC20" && to === "RUB_CASH") return Math.max(1, rate - 1); // USDT -> рубли
     return rate;
   }, [from, to, rate]);
@@ -93,7 +99,7 @@ export default function Calculator() {
       : `${fmtUsdt(Number(left || "0"))} USDT`; // при вводе слева
 
     try {
-      // отправка в Telegram
+      // отправка в Telegram (ожидается ваш эндпоинт /api/order/create)
       await fetch("/api/order/create", {
         method: "POST",
         headers: { "Content-Type":"application/json" },
