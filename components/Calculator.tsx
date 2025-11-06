@@ -30,7 +30,7 @@ export default function Calculator() {
   const [right, setRight] = useState<string>(""); // ввод пользователя справа
   const activeRef = useRef<"left"|"right">("left");
 
-  // тянем курс с бэка каждые 30 секунд
+  // тянем курс с бэка каждые 10 секунд
   useEffect(() => {
     let stop = false;
     const load = async () => {
