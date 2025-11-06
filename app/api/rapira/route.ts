@@ -1,33 +1,98 @@
 import { NextResponse } from "next/server";
 
-const SRC = "https://rapira.net/exchange/USDT_RUB";
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"; // никаких статических кешей
+
+function toNum(v: any): number | null {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/**
+ * Универсальный парсер: пытается вытащить курс USDT/RUB из разных форматов ответа.
+ * Возвращает mid (средний) и/или единый "rate" (если есть только одно поле).
+ */
+function extractRate(json: any): { rate?: number; mid?: number } {
+  // Популярные поля
+  const buy = toNum(json?.buy ?? json?.bestBid ?? json?.bid);
+  const sell = toNum(json?.sell ?? json?.bestAsk ?? json?.ask);
+  const price = toNum(json?.price ?? json?.last ?? json?.rate);
+
+  // Иногда данные лежат глубже
+  const d = json?.data ?? json?.result ?? json?.payload ?? null;
+  if (!buy && !sell && !price && d) {
+    const dbuy = toNum(d?.buy ?? d?.bestBid ?? d?.bid);
+    const dsell = toNum(d?.sell ?? d?.bestAsk ?? d?.ask);
+    const dprice = toNum(d?.price ?? d?.last ?? d?.rate);
+    if (dbuy || dsell) {
+      const mid = (Number(dbuy ?? dsell) + Number(dsell ?? dbuy)) / 2;
+      return { mid };
+    }
+    if (dprice) return { rate: dprice };
+  }
+
+  if (buy || sell) {
+    const mid = (Number(buy ?? sell) + Number(sell ?? buy)) / 2;
+    return { mid };
+  }
+
+  if (price) return { rate: price };
+
+  // Массив записей? Возьмём первую осмысленную
+  if (Array.isArray(json)) {
+    for (const row of json) {
+      const r = extractRate(row);
+      if (r.rate || r.mid) return r;
+    }
+  }
+
+  return {};
+}
 
 export async function GET() {
   try {
-    const r = await fetch(SRC, {
-      headers: { "user-agent": "Mozilla/5.0", "cache-control": "no-cache" },
+    const url = "https://api.rapira.net/market/exchange-plate-mini?symbol=USDT/RUB";
+    const r = await fetch(url, {
+      // на всякий случай уберём кеш на стороне Vercel
       cache: "no-store",
+      headers: {
+        Accept: "application/json",
+      },
     });
-    const html = await r.text();
 
-    // Берём первое число вида 82.27 на странице
-    const m = html.match(/(\d{1,3}[.,]\d{2})/);
-    const raw = m ? m[1].replace(",", ".") : "82.00";
-    const rate = Math.max(10, Math.min(500, parseFloat(raw)));
+    if (!r.ok) {
+      return NextResponse.json(
+        { ok: false, error: `rapira http ${r.status}` },
+        { status: 502 },
+      );
+    }
 
+    const j = await r.json();
+    const { rate, mid } = extractRate(j);
+
+    const base = toNum(rate ?? mid);
+    if (!base) {
+      return NextResponse.json(
+        { ok: false, error: "cant-parse-rapira-response", raw: j },
+        { status: 502 },
+      );
+    }
+
+    // Возвращаем единый курс USDT/RUB (RUB за 1 USDT)
     return NextResponse.json({
       ok: true,
-      rate,               // USDT→RUB базовый курс Rapira
-      updatedAt: new Date().toISOString(),
-      source: "rapira",
-    }, { headers: { "Cache-Control": "no-store" }});
+      rate: base,
+      src: "rapira",
+      ts: Date.now(),
+    }, {
+      headers: {
+        // отключим кеш в CDN
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      },
+    });
   } catch (e: any) {
-    return NextResponse.json({
-      ok: false,
-      rate: 82.0,
-      error: e?.message || "fetch error",
-      updatedAt: new Date().toISOString(),
-    }, { headers: { "Cache-Control": "no-store" }});
+    return NextResponse.json(
+      { ok: false, error: e?.message || "rapira-error" },
+      { status: 500 },
+    );
   }
 }
